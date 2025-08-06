@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #fef7ee;
+  }
+}
+
+@layer components {
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .recipe-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .cooking-time {
+    @apply inline-flex items-center px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full;
+  }
+
+  .difficulty-1 {
+    @apply bg-green-100 text-green-800;
+  }
+  .difficulty-2 {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  .difficulty-3 {
+    @apply bg-orange-100 text-orange-800;
+  }
+  .difficulty-4 {
+    @apply bg-red-100 text-red-800;
+  }
+  .difficulty-5 {
+    @apply bg-purple-100 text-purple-800;
+  }
+}

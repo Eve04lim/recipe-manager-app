@@ -4,7 +4,10 @@ export type MeasurementUnit =
   | 'ml' | 'l' | 'cc'
   | '個' | '本' | '枚' | '切れ'
   | '大さじ' | '小さじ' | 'カップ'
-  | '少々' | 'ひとつまみ' | '適量';
+  | '少々' | 'ひとつまみ' | '適量'
+  | '箱' | '袋' | '缶' | '瓶'        // 追加：パッケージ系
+  | '片' | '房' | '株' | '束'        // 追加：野菜系
+  | 'パック' | 'セット' | '丁'; 
 
 // 料理カテゴリ
 export type RecipeCategory = 
@@ -141,3 +144,4 @@ export interface RecipeStats {
   categoryBreakdown: Record<RecipeCategory, number>;
   difficultyBreakdown: Record<DifficultyLevel, number>;
 }
+

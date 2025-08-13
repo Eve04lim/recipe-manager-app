@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -38,7 +38,7 @@ export default {
     },
   },
   plugins: [
-    // ES Module形式でのプラグイン読み込み
-    (await import('@tailwindcss/forms')).default,
+    // ここがエラーの原因だった！async/awaitを削除
+    require('@tailwindcss/forms'),
   ],
 }

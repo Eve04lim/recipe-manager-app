@@ -76,10 +76,10 @@ export const useRecipeFilter = (recipes: Recipe[]) => {
       );
     }
 
-    // ソート
+    // ソート（型安全に修正）
     filtered.sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
+      let aValue: string | number | Date;
+      let bValue: string | number | Date;
 
       switch (sort.field) {
         case 'title':
@@ -114,8 +114,22 @@ export const useRecipeFilter = (recipes: Recipe[]) => {
           return 0;
       }
 
-      if (aValue < bValue) return sort.direction === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sort.direction === 'asc' ? 1 : -1;
+      // 比較処理を型安全に
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sort.direction === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      if (aValue instanceof Date && bValue instanceof Date) {
+        const diff = aValue.getTime() - bValue.getTime();
+        return sort.direction === 'asc' ? diff : -diff;
+      }
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sort.direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+
       return 0;
     });
 

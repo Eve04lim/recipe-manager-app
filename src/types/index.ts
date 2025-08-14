@@ -145,3 +145,28 @@ export interface RecipeStats {
   difficultyBreakdown: Record<DifficultyLevel, number>;
 }
 
+
+
+// 統計情報の型（RecipeStatsは既存、DatabaseStatsは新規追加）
+export interface RecipeStats {
+  totalRecipes: number;
+  favoriteRecipes: number;
+  totalCookTime: number; 
+  avgRating: number;
+  mostCookedRecipe?: Recipe;
+  recentlyAdded: Recipe[];
+  categoryBreakdown: Record<RecipeCategory, number>;
+  difficultyBreakdown: Record<DifficultyLevel, number>;
+}
+
+// データベース用の統計情報型（database.tsからも使用可能）
+export type DatabaseStats = RecipeStats
+
+// 検索・フィルタ結果の統計型
+export interface FilterStats {
+  totalRecipes: number;
+  filteredCount: number;
+  favoriteCount: number;
+  categories: string[];
+  avgRating: number;
+}

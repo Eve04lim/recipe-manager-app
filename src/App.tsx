@@ -3,260 +3,170 @@ import { useState } from 'react';
 import { CookingSteps } from './components/recipe/CookingSteps';
 import { IngredientList } from './components/recipe/IngredientList';
 import { RecipeCard } from './components/recipe/RecipeCard';
+import { RecipeFilterPanel } from './components/recipe/RecipeFilterPanel';
+import { RecipeSearchBar } from './components/recipe/RecipeSearchBar';
+import { RecipeSortControls } from './components/recipe/RecipeSortControls';
 import { Button } from './components/ui/Button';
 import { Modal } from './components/ui/Modal';
+import { useRecipeFilter } from './hooks/useRecipeFilter';
 import type { Recipe } from './types';
 
-// テスト用のサンプルレシピデータ
-const sampleRecipe: Recipe = {
-  id: '1',
-  title: 'チキンカレー',
-  description: 'スパイスの効いた本格的なチキンカレーです。家庭でも簡単に作れるレシピです。',
-  servings: 4,
-  prepTime: 20,
-  cookTime: 40,
-  difficulty: 2,
-  category: '主食',
-  ingredients: [
-   {
-     id: 'ing1',
-     name: '鶏もも肉',
-     amount: 500,
-     unit: 'g',
-     notes: '一口大に切る'
-   },
-   {
-     id: 'ing2',
-     name: '玉ねぎ',
-     amount: 2,
-     unit: '個',
-     notes: 'みじん切り'
-   },
-   {
-     id: 'ing3',
-     name: 'にんじん',
-     amount: 1,
-     unit: '本',
-     notes: '乱切り'
-   },
-   {
-     id: 'ing4',
-     name: 'じゃがいも',
-     amount: 3,
-     unit: '個',
-     notes: '一口大に切る'
-   },
-   {
-     id: 'ing5',
-     name: 'カレールー',
-     amount: 1,
-     unit: '箱',
-     notes: '中辛'
-   },
-   {
-     id: 'ing6',
-     name: '水',
-     amount: 800,
-     unit: 'ml'
-   },
-   {
-     id: 'ing7',
-     name: 'サラダ油',
-     amount: 2,
-     unit: '大さじ'
-   },
-   {
-     id: 'ing8',
-     name: 'にんにく',
-     amount: 1,
-     unit: '片',
-     notes: 'みじん切り'
-   }
- ],
- steps: [
-   {
-     id: 'step1',
-     stepNumber: 1,
-     description: '鶏もも肉を一口大に切り、玉ねぎ、にんじん、じゃがいもを準備します。にんにくはみじん切りにしておきます。',
-   },
-   {
-     id: 'step2',
-     stepNumber: 2,
-     description: 'フライパンにサラダ油を熱し、にんにくを炒めて香りを出します。続いて玉ねぎを透明になるまで炒めます。',
-     timer: 5
-   },
-   {
-     id: 'step3',
-     stepNumber: 3,
-     description: '鶏もも肉を加えて、表面に焼き色がつくまで炒めます。',
-     timer: 8
-   },
-   {
-     id: 'step4',
-     stepNumber: 4,
-     description: 'にんじんとじゃがいもを加えて軽く炒めたら、水を加えて煮立たせます。',
-   },
-   {
-     id: 'step5',
-     stepNumber: 5,
-     description: 'アクを取りながら中火で煮込みます。野菜が柔らかくなるまで煮込んでください。',
-     timer: 20
-   },
-   {
-     id: 'step6',
-     stepNumber: 6,
-     description: '一度火を止めてカレールーを加え、よく溶かします。再び火をつけて弱火で煮込んで完成です。',
-     timer: 10
-   }
- ],
- tags: ['簡単', '家庭料理', 'スパイシー', '人気'],
- imageUrl: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=🍛+チキンカレー',
- isFavorite: false,
- rating: 4.5,
- createdAt: '2024-01-15T10:00:00Z',
- updatedAt: '2024-01-15T10:00:00Z',
- cookCount: 3
-};
-
-// 他のサンプルレシピ
+// 拡張サンプルデータ
 const sampleRecipes: Recipe[] = [
- sampleRecipe,
- {
-   id: '2',
-   title: 'シーザーサラダ',
-   description: 'クリスピーなクルトンとパルメザンチーズが美味しいシーザーサラダです。',
+  // 前回のサンプルレシピに加えて、追加のレシピ
+  {
+    id: '4',
+    title: 'パスタアラビアータ',
+    description: 'ピリ辛のトマトソースが絶品のパスタです。',
+    servings: 2,
+    prepTime: 10,
+    cookTime: 15,
+    difficulty: 2,
+    category: 'イタリアン',
+    ingredients: [
+      { id: 'ing18', name: 'パスタ', amount: 200, unit: 'g' },
+      { id: 'ing19', name: 'ホールトマト', amount: 1, unit: '缶' },
+      { id: 'ing20', name: 'にんにく', amount: 2, unit: '片', notes: 'みじん切り' },
+      { id: 'ing21', name: 'オリーブオイル', amount: 3, unit: '大さじ' },
+      { id: 'ing22', name: '唐辛子', amount: 1, unit: '本' },
+    ],
+    steps: [
+      { id: 'step14', stepNumber: 1, description: 'パスタを茹でる準備をします。' },
+      { id: 'step15', stepNumber: 2, description: 'にんにくと唐辛子をオリーブオイルで炒めます。', timer: 3 },
+      { id: 'step16', stepNumber: 3, description: 'トマトソースを加えて煮込みます。', timer: 10 },
+      { id: 'step17', stepNumber: 4, description: '茹でたパスタと絡めて完成です。' },
+    ],
+    tags: ['イタリアン', 'パスタ', 'ピリ辛', '簡単'],
+    imageUrl: 'https://via.placeholder.com/400x300/dc2626/ffffff?text=🍝+パスタ',
+    isFavorite: true,
+    rating: 4.7,
+    createdAt: '2024-01-12T18:00:00Z',
+    updatedAt: '2024-01-12T18:00:00Z',
+    cookCount: 5
+  },
+  {
+    id: '5',
+    title: '味噌ラーメン',
+    description: '濃厚な味噌スープが自慢のラーメンです。寒い日にぴったりの一品。',
    servings: 2,
    prepTime: 15,
-   cookTime: 0,
-   difficulty: 1,
-   category: 'サラダ',
+   cookTime: 25,
+   difficulty: 3,
+   category: '和食',
    ingredients: [
-     {
-       id: 'ing9',
-       name: 'ロメインレタス',
-       amount: 1,
-       unit: '株',
-       notes: '一口大にちぎる'
-     },
-     {
-       id: 'ing10',
-       name: 'パルメザンチーズ',
-       amount: 50,
-       unit: 'g',
-       notes: '削る'
-     },
-     {
-       id: 'ing11',
-       name: 'クルトン',
-       amount: 50,
-       unit: 'g'
-     },
-     {
-       id: 'ing12',
-       name: 'シーザードレッシング',
-       amount: 3,
-       unit: '大さじ'
-     }
+     { id: 'ing23', name: '中華麺', amount: 2, unit: '玉' },
+     { id: 'ing24', name: '味噌', amount: 4, unit: '大さじ' },
+     { id: 'ing25', name: '鶏がらスープの素', amount: 2, unit: '小さじ' },
+     { id: 'ing26', name: 'もやし', amount: 1, unit: '袋' },
+     { id: 'ing27', name: 'チャーシュー', amount: 4, unit: '枚' },
+     { id: 'ing28', name: 'ねぎ', amount: 2, unit: '本', notes: '小口切り' },
+     { id: 'ing29', name: 'ゆで卵', amount: 2, unit: '個' },
    ],
    steps: [
-     {
-       id: 'step7',
-       stepNumber: 1,
-       description: 'ロメインレタスをよく洗い、水気を切って一口大にちぎります。',
-     },
-     {
-       id: 'step8',
-       stepNumber: 2,
-       description: 'ボウルにレタス、クルトン、パルメザンチーズを入れ、シーザードレッシングで和えて完成です。',
-     }
+     { id: 'step18', stepNumber: 1, description: 'スープを作ります。味噌と鶏がらスープの素を合わせます。' },
+     { id: 'step19', stepNumber: 2, description: 'もやしを茹でて準備します。', timer: 3 },
+     { id: 'step20', stepNumber: 3, description: '中華麺を茹でます。', timer: 3 },
+     { id: 'step21', stepNumber: 4, description: '器にスープと麺を入れ、具材をトッピングして完成です。' },
    ],
-   tags: ['ヘルシー', '簡単', '洋食'],
-   imageUrl: 'https://via.placeholder.com/400x300/22c55e/ffffff?text=🥗+サラダ',
+   tags: ['和食', 'ラーメン', '温かい', '冬'],
+   imageUrl: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=🍜+ラーメン',
+   isFavorite: false,
+   rating: 4.3,
+   createdAt: '2024-01-11T12:00:00Z',
+   updatedAt: '2024-01-11T12:00:00Z',
+   cookCount: 2
+ },
+ {
+   id: '6',
+   title: 'フルーツタルト',
+   description: 'カラフルなフルーツが美しいタルトです。見た目も味も最高！',
+   servings: 6,
+   prepTime: 45,
+   cookTime: 30,
+   difficulty: 5,
+   category: 'デザート',
+   ingredients: [
+     { id: 'ing30', name: 'タルト生地', amount: 1, unit: '枚' },
+     { id: 'ing31', name: 'カスタードクリーム', amount: 200, unit: 'ml' },
+     { id: 'ing32', name: 'いちご', amount: 10, unit: '個' },
+     { id: 'ing33', name: 'キウイ', amount: 2, unit: '個' },
+     { id: 'ing34', name: 'ブルーベリー', amount: 50, unit: 'g' },
+     { id: 'ing35', name: 'ナパージュ', amount: 2, unit: '大さじ' },
+   ],
+   steps: [
+     { id: 'step22', stepNumber: 1, description: 'タルト生地を焼きます。', timer: 20 },
+     { id: 'step23', stepNumber: 2, description: 'カスタードクリームを作ります。', timer: 15 },
+     { id: 'step24', stepNumber: 3, description: 'フルーツをカットして準備します。', timer: 10 },
+     { id: 'step25', stepNumber: 4, description: 'タルト生地にクリームを敷き、フルーツを美しく並べます。' },
+     { id: 'step26', stepNumber: 5, description: 'ナパージュを塗って完成です。' },
+   ],
+   tags: ['デザート', 'タルト', 'フルーツ', '手作り', '特別な日'],
+   imageUrl: 'https://via.placeholder.com/400x300/ec4899/ffffff?text=🥧+タルト',
    isFavorite: true,
-   rating: 4.2,
-   createdAt: '2024-01-14T15:30:00Z',
-   updatedAt: '2024-01-14T15:30:00Z',
+   rating: 4.9,
+   createdAt: '2024-01-10T14:30:00Z',
+   updatedAt: '2024-01-10T14:30:00Z',
    cookCount: 1
  },
  {
-   id: '3',
-   title: 'チョコレートケーキ',
-   description: '濃厚で美味しいチョコレートケーキです。特別な日のデザートにぴったり。',
-   servings: 8,
-   prepTime: 30,
-   cookTime: 45,
-   difficulty: 4,
-   category: 'デザート',
+   id: '7',
+   title: '親子丼',
+   description: 'ふわふわ卵と鶏肉の定番丼ぶりです。家庭の味を再現。',
+   servings: 2,
+   prepTime: 10,
+   cookTime: 15,
+   difficulty: 2,
+   category: '和食',
    ingredients: [
-     {
-       id: 'ing13',
-       name: 'チョコレート',
-       amount: 200,
-       unit: 'g',
-       notes: 'ダークチョコレート'
-     },
-     {
-       id: 'ing14',
-       name: 'バター',
-       amount: 100,
-       unit: 'g'
-     },
-     {
-       id: 'ing15',
-       name: '卵',
-       amount: 3,
-       unit: '個'
-     },
-     {
-       id: 'ing16',
-       name: '砂糖',
-       amount: 80,
-       unit: 'g'
-     },
-     {
-       id: 'ing17',
-       name: '薄力粉',
-       amount: 60,
-       unit: 'g'
-     }
+     { id: 'ing36', name: '鶏もも肉', amount: 200, unit: 'g', notes: '一口大に切る' },
+     { id: 'ing37', name: '卵', amount: 4, unit: '個' },
+     { id: 'ing38', name: '玉ねぎ', amount: 1, unit: '個', notes: 'スライス' },
+     { id: 'ing39', name: 'ご飯', amount: 2, unit: '膳' },
+     { id: 'ing40', name: 'だし汁', amount: 200, unit: 'ml' },
+     { id: 'ing41', name: '醤油', amount: 2, unit: '大さじ' },
+     { id: 'ing42', name: 'みりん', amount: 1, unit: '大さじ' },
    ],
    steps: [
-     {
-       id: 'step9',
-       stepNumber: 1,
-       description: 'オーブンを180℃に予熱し、型にバターを塗って粉を振っておきます。',
-     },
-     {
-       id: 'step10',
-       stepNumber: 2,
-       description: 'チョコレートとバターを湯煎で溶かします。',
-       timer: 10
-     },
-     {
-       id: 'step11',
-       stepNumber: 3,
-       description: '卵と砂糖を白っぽくなるまで泡立て、溶かしたチョコレートを加えて混ぜます。',
-       timer: 8
-     },
-     {
-       id: 'step12',
-       stepNumber: 4,
-       description: '薄力粉をふるって加え、さっくりと混ぜ合わせます。',
-     },
-     {
-       id: 'step13',
-       stepNumber: 5,
-       description: '型に流し入れ、180℃のオーブンで45分焼きます。',
-       timer: 45
-     }
+     { id: 'step27', stepNumber: 1, description: 'だし汁、醤油、みりんを煮立てます。' },
+     { id: 'step28', stepNumber: 2, description: '鶏肉と玉ねぎを加えて煮ます。', timer: 8 },
+     { id: 'step29', stepNumber: 3, description: '溶き卵を回し入れ、半熟で火を止めます。', timer: 2 },
+     { id: 'step30', stepNumber: 4, description: 'ご飯の上にのせて完成です。' },
    ],
-   tags: ['デザート', 'チョコレート', '特別な日'],
-   imageUrl: 'https://via.placeholder.com/400x300/8b5cf6/ffffff?text=🍰+ケーキ',
+   tags: ['和食', '丼ぶり', '卵', '鶏肉', '家庭料理'],
+   imageUrl: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=🍚+親子丼',
    isFavorite: false,
-   rating: 4.8,
-   createdAt: '2024-01-13T20:00:00Z',
-   updatedAt: '2024-01-13T20:00:00Z',
-   cookCount: 0
+   rating: 4.4,
+   createdAt: '2024-01-09T19:00:00Z',
+   updatedAt: '2024-01-09T19:00:00Z',
+   cookCount: 7
+ },
+ {
+   id: '8',
+   title: 'グリーンスムージー',
+   description: 'ヘルシーで栄養満点のグリーンスムージーです。朝食にぴったり！',
+   servings: 2,
+   prepTime: 5,
+   cookTime: 0,
+   difficulty: 1,
+   category: '飲み物',
+   ingredients: [
+     { id: 'ing43', name: 'ほうれん草', amount: 50, unit: 'g' },
+     { id: 'ing44', name: 'バナナ', amount: 1, unit: '本' },
+     { id: 'ing45', name: 'りんご', amount: 1, unit: '個' },
+     { id: 'ing46', name: '水', amount: 200, unit: 'ml' },
+     { id: 'ing47', name: 'はちみつ', amount: 1, unit: '大さじ' },
+   ],
+   steps: [
+     { id: 'step31', stepNumber: 1, description: 'フルーツと野菜をカットします。' },
+     { id: 'step32', stepNumber: 2, description: 'すべての材料をミキサーに入れて撹拌します。', timer: 2 },
+     { id: 'step33', stepNumber: 3, description: 'グラスに注いで完成です。' },
+   ],
+   tags: ['ヘルシー', 'スムージー', '朝食', '野菜', 'フルーツ'],
+   isFavorite: true,
+   rating: 4.1,
+   createdAt: '2024-01-08T07:00:00Z',
+   updatedAt: '2024-01-08T07:00:00Z',
+   cookCount: 15
  }
 ];
 
@@ -265,6 +175,23 @@ function App() {
  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
  const [currentServings, setCurrentServings] = useState(4);
+ const [showFilters, setShowFilters] = useState(false);
+
+ // 検索・フィルタフック
+ const {
+   searchQuery,
+   filters,
+   sort,
+   filteredRecipes,
+   stats,
+   updateSearchQuery,
+   updateFilter,
+   updateSort,
+   resetFilters,
+ } = useRecipeFilter(recipes);
+
+ // 利用可能なタグを取得
+ const availableTags = [...new Set(recipes.flatMap(recipe => recipe.tags))];
 
  // お気に入りの切り替え
  const handleToggleFavorite = (recipeId: string) => {
@@ -289,7 +216,7 @@ function App() {
    }
  };
 
- // レシピの編集（今回はアラートのみ）
+ // レシピの編集
  const handleEditRecipe = (recipe: Recipe) => {
    alert(`「${recipe.title}」の編集機能は次回実装予定です！`);
  };
@@ -298,12 +225,12 @@ function App() {
    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50">
      <div className="container mx-auto px-4 py-8">
        {/* ヘッダー */}
-       <div className="text-center mb-12">
-         <h1 className="text-5xl font-bold text-primary-800 mb-4">
+       <div className="text-center mb-8">
+         <h1 className="text-4xl font-bold text-primary-800 mb-4">
            🍳 レシピ管理アプリ
          </h1>
-         <p className="text-xl text-gray-600 mb-6">
-           レシピコンポーネント動作テスト
+         <p className="text-lg text-gray-600 mb-6">
+           美味しいレシピを検索・管理しよう！
          </p>
          <Button leftIcon={<Plus />} size="lg">
            新しいレシピを追加
@@ -311,84 +238,101 @@ function App() {
        </div>
 
        {/* 統計情報 */}
-       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-         <div className="bg-white rounded-lg p-6 shadow-md text-center">
-           <div className="text-3xl font-bold text-primary-600">
-             {recipes.length}
+       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+         <div className="bg-white rounded-lg p-4 shadow-md text-center">
+           <div className="text-2xl font-bold text-primary-600">
+             {stats.totalRecipes}
            </div>
-           <div className="text-gray-600">総レシピ数</div>
+           <div className="text-sm text-gray-600">総レシピ数</div>
          </div>
-         <div className="bg-white rounded-lg p-6 shadow-md text-center">
-           <div className="text-3xl font-bold text-red-500">
-             {recipes.filter(r => r.isFavorite).length}
+         <div className="bg-white rounded-lg p-4 shadow-md text-center">
+           <div className="text-2xl font-bold text-red-500">
+             {stats.favoriteCount}
            </div>
-           <div className="text-gray-600">お気に入り</div>
+           <div className="text-sm text-gray-600">お気に入り</div>
          </div>
-         <div className="bg-white rounded-lg p-6 shadow-md text-center">
-           <div className="text-3xl font-bold text-green-500">
-             {recipes.filter(r => r.difficulty <= 2).length}
+         <div className="bg-white rounded-lg p-4 shadow-md text-center">
+           <div className="text-2xl font-bold text-green-500">
+             {stats.categories.length}
            </div>
-           <div className="text-gray-600">簡単レシピ</div>
+           <div className="text-sm text-gray-600">カテゴリ数</div>
          </div>
-         <div className="bg-white rounded-lg p-6 shadow-md text-center">
-           <div className="text-3xl font-bold text-blue-500">
-             {recipes.reduce((sum, r) => sum + r.cookCount, 0)}
+         <div className="bg-white rounded-lg p-4 shadow-md text-center">
+           <div className="text-2xl font-bold text-blue-500">
+             ⭐ {stats.avgRating}
            </div>
-           <div className="text-gray-600">総調理回数</div>
+           <div className="text-sm text-gray-600">平均評価</div>
          </div>
        </div>
 
-       {/* レシピカード一覧 */}
-       <div className="mb-12">
-         <h2 className="text-2xl font-bold text-gray-800 mb-6">
-           📚 レシピ一覧
-         </h2>
-         <div className="recipe-grid">
-           {recipes.map((recipe) => (
-             <RecipeCard
-               key={recipe.id}
-               recipe={recipe}
-               onView={handleViewRecipe}
-               onEdit={handleEditRecipe}
-               onDelete={handleDeleteRecipe}
-               onToggleFavorite={handleToggleFavorite}
-             />
-           ))}
-         </div>
+       {/* 検索・フィルタエリア */}
+       <div className="mb-8 space-y-4">
+         {/* 検索バー */}
+         <RecipeSearchBar
+           searchQuery={searchQuery}
+           onSearchChange={updateSearchQuery}
+           onFilterToggle={() => setShowFilters(!showFilters)}
+           showFilters={showFilters}
+           resultCount={stats.filteredCount}
+           totalCount={stats.totalRecipes}
+           onReset={resetFilters}
+         />
+
+         {/* フィルタパネル */}
+         <RecipeFilterPanel
+           filters={filters}
+           onFilterChange={updateFilter}
+           onReset={resetFilters}
+           availableTags={availableTags}
+           isVisible={showFilters}
+         />
        </div>
 
-       {/* サンプル材料リスト */}
-       <div className="mb-12">
-         <h2 className="text-2xl font-bold text-gray-800 mb-6">
-           🥕 材料リスト（テスト）
-         </h2>
-         <div className="max-w-2xl mx-auto">
-           <IngredientList
-             ingredients={sampleRecipe.ingredients}
-             servings={currentServings}
-             onServingsChange={setCurrentServings}
-             editable={true}
-             onIngredientUpdate={(updatedIngredients) => {
-               console.log('材料が更新されました:', updatedIngredients);
-             }}
+       {/* ソートコントロール */}
+       {stats.filteredCount > 0 && (
+         <div className="mb-6">
+           <RecipeSortControls
+             sort={sort}
+             onSortChange={updateSort}
+             resultCount={stats.filteredCount}
            />
          </div>
-       </div>
+       )}
 
-       {/* サンプル調理手順 */}
+       {/* レシピ一覧 */}
        <div className="mb-12">
-         <h2 className="text-2xl font-bold text-gray-800 mb-6">
-           👨‍🍳 調理手順（テスト）
-         </h2>
-         <div className="max-w-2xl mx-auto">
-           <CookingSteps
-             steps={sampleRecipe.steps}
-             editable={true}
-             onStepUpdate={(updatedSteps) => {
-               console.log('手順が更新されました:', updatedSteps);
-             }}
-           />
-         </div>
+         {stats.filteredCount > 0 ? (
+           <div className="recipe-grid">
+             {filteredRecipes.map((recipe) => (
+               <RecipeCard
+                 key={recipe.id}
+                 recipe={recipe}
+                 onView={handleViewRecipe}
+                 onEdit={handleEditRecipe}
+                 onDelete={handleDeleteRecipe}
+                 onToggleFavorite={handleToggleFavorite}
+               />
+             ))}
+           </div>
+         ) : (
+           <div className="text-center py-16">
+             <div className="text-6xl mb-4">🔍</div>
+             <h3 className="text-xl font-semibold text-gray-800 mb-2">
+               レシピが見つかりませんでした
+             </h3>
+             <p className="text-gray-600 mb-6">
+               検索条件を変更するか、新しいレシピを追加してみてください。
+             </p>
+             <div className="flex justify-center gap-3">
+               <Button variant="outline" onClick={resetFilters}>
+                 フィルタをリセット
+               </Button>
+               <Button leftIcon={<Plus />}>
+                 新しいレシピを追加
+               </Button>
+             </div>
+           </div>
+         )}
        </div>
 
        {/* レシピ詳細モーダル */}

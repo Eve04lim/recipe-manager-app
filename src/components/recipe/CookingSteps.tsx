@@ -15,10 +15,6 @@ interface CookingStepsProps {
 
 export const CookingSteps: React.FC<CookingStepsProps> = ({
   steps,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  editable = false,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onStepUpdate,
   className,
 }) => {
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());

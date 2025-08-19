@@ -1,429 +1,743 @@
-import { Heart, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { Download, Edit3, Heart, Plus, Trash2, Upload } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { CookingSteps } from './components/recipe/CookingSteps';
 import { IngredientList } from './components/recipe/IngredientList';
 import { RecipeCard } from './components/recipe/RecipeCard';
 import { RecipeFilterPanel } from './components/recipe/RecipeFilterPanel';
+import { RecipeForm } from './components/recipe/RecipeForm';
 import { RecipeSearchBar } from './components/recipe/RecipeSearchBar';
 import { RecipeSortControls } from './components/recipe/RecipeSortControls';
 import { Button } from './components/ui/Button';
 import { Modal } from './components/ui/Modal';
 import { useRecipeFilter } from './hooks/useRecipeFilter';
+import {
+  useAddRecipe,
+  useClearDatabase,
+  useDeleteRecipe,
+  useExportData,
+  useImportData,
+  useIncrementCookCount,
+  useRecipes,
+  useStats,
+  useUpdateRecipe
+} from './hooks/useRecipes';
 import type { Recipe } from './types';
+import { initializeSampleData } from './utils/sampleData';
 
-// 拡張サンプルデータ
-const sampleRecipes: Recipe[] = [
-  // 前回のサンプルレシピに加えて、追加のレシピ
-  {
-    id: '4',
-    title: 'パスタアラビアータ',
-    description: 'ピリ辛のトマトソースが絶品のパスタです。',
-    servings: 2,
-    prepTime: 10,
-    cookTime: 15,
-    difficulty: 2,
-    category: 'イタリアン',
-    ingredients: [
-      { id: 'ing18', name: 'パスタ', amount: 200, unit: 'g' },
-      { id: 'ing19', name: 'ホールトマト', amount: 1, unit: '缶' },
-      { id: 'ing20', name: 'にんにく', amount: 2, unit: '片', notes: 'みじん切り' },
-      { id: 'ing21', name: 'オリーブオイル', amount: 3, unit: '大さじ' },
-      { id: 'ing22', name: '唐辛子', amount: 1, unit: '本' },
-    ],
-    steps: [
-      { id: 'step14', stepNumber: 1, description: 'パスタを茹でる準備をします。' },
-      { id: 'step15', stepNumber: 2, description: 'にんにくと唐辛子をオリーブオイルで炒めます。', timer: 3 },
-      { id: 'step16', stepNumber: 3, description: 'トマトソースを加えて煮込みます。', timer: 10 },
-      { id: 'step17', stepNumber: 4, description: '茹でたパスタと絡めて完成です。' },
-    ],
-    tags: ['イタリアン', 'パスタ', 'ピリ辛', '簡単'],
-    imageUrl: 'https://via.placeholder.com/400x300/dc2626/ffffff?text=🍝+パスタ',
-    isFavorite: true,
-    rating: 4.7,
-    createdAt: '2024-01-12T18:00:00Z',
-    updatedAt: '2024-01-12T18:00:00Z',
-    cookCount: 5
-  },
-  {
-    id: '5',
-    title: '味噌ラーメン',
-    description: '濃厚な味噌スープが自慢のラーメンです。寒い日にぴったりの一品。',
-   servings: 2,
-   prepTime: 15,
-   cookTime: 25,
-   difficulty: 3,
-   category: '和食',
-   ingredients: [
-     { id: 'ing23', name: '中華麺', amount: 2, unit: '玉' },
-     { id: 'ing24', name: '味噌', amount: 4, unit: '大さじ' },
-     { id: 'ing25', name: '鶏がらスープの素', amount: 2, unit: '小さじ' },
-     { id: 'ing26', name: 'もやし', amount: 1, unit: '袋' },
-     { id: 'ing27', name: 'チャーシュー', amount: 4, unit: '枚' },
-     { id: 'ing28', name: 'ねぎ', amount: 2, unit: '本', notes: '小口切り' },
-     { id: 'ing29', name: 'ゆで卵', amount: 2, unit: '個' },
-   ],
-   steps: [
-     { id: 'step18', stepNumber: 1, description: 'スープを作ります。味噌と鶏がらスープの素を合わせます。' },
-     { id: 'step19', stepNumber: 2, description: 'もやしを茹でて準備します。', timer: 3 },
-     { id: 'step20', stepNumber: 3, description: '中華麺を茹でます。', timer: 3 },
-     { id: 'step21', stepNumber: 4, description: '器にスープと麺を入れ、具材をトッピングして完成です。' },
-   ],
-   tags: ['和食', 'ラーメン', '温かい', '冬'],
-   imageUrl: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=🍜+ラーメン',
-   isFavorite: false,
-   rating: 4.3,
-   createdAt: '2024-01-11T12:00:00Z',
-   updatedAt: '2024-01-11T12:00:00Z',
-   cookCount: 2
- },
- {
-   id: '6',
-   title: 'フルーツタルト',
-   description: 'カラフルなフルーツが美しいタルトです。見た目も味も最高！',
-   servings: 6,
-   prepTime: 45,
-   cookTime: 30,
-   difficulty: 5,
-   category: 'デザート',
-   ingredients: [
-     { id: 'ing30', name: 'タルト生地', amount: 1, unit: '枚' },
-     { id: 'ing31', name: 'カスタードクリーム', amount: 200, unit: 'ml' },
-     { id: 'ing32', name: 'いちご', amount: 10, unit: '個' },
-     { id: 'ing33', name: 'キウイ', amount: 2, unit: '個' },
-     { id: 'ing34', name: 'ブルーベリー', amount: 50, unit: 'g' },
-     { id: 'ing35', name: 'ナパージュ', amount: 2, unit: '大さじ' },
-   ],
-   steps: [
-     { id: 'step22', stepNumber: 1, description: 'タルト生地を焼きます。', timer: 20 },
-     { id: 'step23', stepNumber: 2, description: 'カスタードクリームを作ります。', timer: 15 },
-     { id: 'step24', stepNumber: 3, description: 'フルーツをカットして準備します。', timer: 10 },
-     { id: 'step25', stepNumber: 4, description: 'タルト生地にクリームを敷き、フルーツを美しく並べます。' },
-     { id: 'step26', stepNumber: 5, description: 'ナパージュを塗って完成です。' },
-   ],
-   tags: ['デザート', 'タルト', 'フルーツ', '手作り', '特別な日'],
-   imageUrl: 'https://via.placeholder.com/400x300/ec4899/ffffff?text=🥧+タルト',
-   isFavorite: true,
-   rating: 4.9,
-   createdAt: '2024-01-10T14:30:00Z',
-   updatedAt: '2024-01-10T14:30:00Z',
-   cookCount: 1
- },
- {
-   id: '7',
-   title: '親子丼',
-   description: 'ふわふわ卵と鶏肉の定番丼ぶりです。家庭の味を再現。',
-   servings: 2,
-   prepTime: 10,
-   cookTime: 15,
-   difficulty: 2,
-   category: '和食',
-   ingredients: [
-     { id: 'ing36', name: '鶏もも肉', amount: 200, unit: 'g', notes: '一口大に切る' },
-     { id: 'ing37', name: '卵', amount: 4, unit: '個' },
-     { id: 'ing38', name: '玉ねぎ', amount: 1, unit: '個', notes: 'スライス' },
-     { id: 'ing39', name: 'ご飯', amount: 2, unit: '膳' },
-     { id: 'ing40', name: 'だし汁', amount: 200, unit: 'ml' },
-     { id: 'ing41', name: '醤油', amount: 2, unit: '大さじ' },
-     { id: 'ing42', name: 'みりん', amount: 1, unit: '大さじ' },
-   ],
-   steps: [
-     { id: 'step27', stepNumber: 1, description: 'だし汁、醤油、みりんを煮立てます。' },
-     { id: 'step28', stepNumber: 2, description: '鶏肉と玉ねぎを加えて煮ます。', timer: 8 },
-     { id: 'step29', stepNumber: 3, description: '溶き卵を回し入れ、半熟で火を止めます。', timer: 2 },
-     { id: 'step30', stepNumber: 4, description: 'ご飯の上にのせて完成です。' },
-   ],
-   tags: ['和食', '丼ぶり', '卵', '鶏肉', '家庭料理'],
-   imageUrl: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=🍚+親子丼',
-   isFavorite: false,
-   rating: 4.4,
-   createdAt: '2024-01-09T19:00:00Z',
-   updatedAt: '2024-01-09T19:00:00Z',
-   cookCount: 7
- },
- {
-   id: '8',
-   title: 'グリーンスムージー',
-   description: 'ヘルシーで栄養満点のグリーンスムージーです。朝食にぴったり！',
-   servings: 2,
-   prepTime: 5,
-   cookTime: 0,
-   difficulty: 1,
-   category: '飲み物',
-   ingredients: [
-     { id: 'ing43', name: 'ほうれん草', amount: 50, unit: 'g' },
-     { id: 'ing44', name: 'バナナ', amount: 1, unit: '本' },
-     { id: 'ing45', name: 'りんご', amount: 1, unit: '個' },
-     { id: 'ing46', name: '水', amount: 200, unit: 'ml' },
-     { id: 'ing47', name: 'はちみつ', amount: 1, unit: '大さじ' },
-   ],
-   steps: [
-     { id: 'step31', stepNumber: 1, description: 'フルーツと野菜をカットします。' },
-     { id: 'step32', stepNumber: 2, description: 'すべての材料をミキサーに入れて撹拌します。', timer: 2 },
-     { id: 'step33', stepNumber: 3, description: 'グラスに注いで完成です。' },
-   ],
-   tags: ['ヘルシー', 'スムージー', '朝食', '野菜', 'フルーツ'],
-   isFavorite: true,
-   rating: 4.1,
-   createdAt: '2024-01-08T07:00:00Z',
-   updatedAt: '2024-01-08T07:00:00Z',
-   cookCount: 15
- }
-];
+// ローディングスピナーコンポーネント
+const LoadingSpinner: React.FC<{ message?: string }> = ({ message = "読み込み中..." }) => (
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+      <p className="text-gray-600">{message}</p>
+    </div>
+  </div>
+);
+
+// エラー表示コンポーネント
+const ErrorDisplay: React.FC<{ error: unknown; onRetry: () => void }> = ({ error, onRetry }) => {
+  const errorMessage = error instanceof Error ? error.message : '予期しないエラーが発生しました';
+  
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50">
+      <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
+        <div className="text-center">
+          <div className="text-6xl mb-4">😵</div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            データの読み込みエラー
+          </h2>
+          <p className="text-gray-600 mb-4">{errorMessage}</p>
+          
+          {/* デバッグ情報（開発モード） */}
+          {typeof process !== 'undefined' && process.env?.NODE_ENV === 'development' && (
+            <details className="mb-4 text-left">
+              <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+                🔧 デバッグ情報を表示
+              </summary>
+              <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
+                <pre className="whitespace-pre-wrap">{JSON.stringify(error, null, 2)}</pre>
+              </div>
+            </details>
+          )}
+          
+          <div className="flex gap-3 justify-center">
+            <Button onClick={onRetry} variant="primary">
+              再試行
+            </Button>
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline"
+            >
+              ページを再読み込み
+            </Button>
+            
+            {/* 開発モード用のリセットボタン */}
+            {typeof process !== 'undefined' && process.env?.NODE_ENV === 'development' && (
+              <Button 
+                onClick={() => {
+                  // IndexedDBを強制クリア
+                  indexedDB.deleteDatabase('RecipeManagerDB')
+                    .then(() => {
+                      console.log('🗑️ データベースをクリアしました');
+                      window.location.reload();
+                    })
+                    .catch(console.error);
+                }}
+                variant="danger"
+                size="sm"
+              >
+                DB完全リセット
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 通知システム（簡易版）
+const useNotification = () => {
+  const showSuccess = (message: string) => {
+    // 実際のアプリではtoast libraryを使用
+    console.log('✅ Success:', message);
+    alert(`✅ ${message}`);
+  };
+
+  const showError = (error: unknown) => {
+    const message = error instanceof Error ? error.message : '操作に失敗しました';
+    console.error('❌ Error:', error);
+    alert(`❌ ${message}`);
+  };
+
+  return { showSuccess, showError };
+};
 
 function App() {
- const [recipes, setRecipes] = useState<Recipe[]>(sampleRecipes);
- const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
- const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
- const [currentServings, setCurrentServings] = useState(4);
- const [showFilters, setShowFilters] = useState(false);
+  // React Query フック
+  const recipesQuery = useRecipes();
+  const statsQuery = useStats();
+  const addRecipeMutation = useAddRecipe();
+  const updateRecipeMutation = useUpdateRecipe();
+  const deleteRecipeMutation = useDeleteRecipe();
+  const incrementCookCountMutation = useIncrementCookCount();
+  const exportDataMutation = useExportData();
+  const importDataMutation = useImportData();
+  const clearDatabaseMutation = useClearDatabase();
 
- // 検索・フィルタフック
- const {
-   searchQuery,
-   filters,
-   sort,
-   filteredRecipes,
-   stats,
-   updateSearchQuery,
-   updateFilter,
-   updateSort,
-   resetFilters,
- } = useRecipeFilter(recipes);
+  // 通知システム
+  const { showSuccess, showError } = useNotification();
 
- // 利用可能なタグを取得
- const availableTags = [...new Set(recipes.flatMap(recipe => recipe.tags))];
+  // ローカル状態
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [currentServings, setCurrentServings] = useState(4);
+  const [showFilters, setShowFilters] = useState(false);
 
- // お気に入りの切り替え
- const handleToggleFavorite = (recipeId: string) => {
-   setRecipes(prev => prev.map(recipe => 
-     recipe.id === recipeId 
-       ? { ...recipe, isFavorite: !recipe.isFavorite }
-       : recipe
-   ));
- };
+  // データの取得
+  const recipes = recipesQuery.data || [];
+  const stats = statsQuery.data;
 
- // レシピの詳細表示
- const handleViewRecipe = (recipe: Recipe) => {
-   setSelectedRecipe(recipe);
-   setCurrentServings(recipe.servings);
-   setIsDetailModalOpen(true);
- };
+  // 検索・フィルタフック
+  const {
+    searchQuery,
+    filters,
+    sort,
+    filteredRecipes,
+    stats: filterStats,
+    updateSearchQuery,
+    updateFilter,
+    updateSort,
+    resetFilters,
+  } = useRecipeFilter(recipes);
 
- // レシピの削除
- const handleDeleteRecipe = (recipeId: string) => {
-   if (confirm('このレシピを削除してもよろしいですか？')) {
-     setRecipes(prev => prev.filter(recipe => recipe.id !== recipeId));
-   }
- };
+  // 利用可能なタグを取得
+  const availableTags = [...new Set(recipes.flatMap(recipe => recipe.tags))];
 
- // レシピの編集
- const handleEditRecipe = (recipe: Recipe) => {
-   alert(`「${recipe.title}」の編集機能は次回実装予定です！`);
- };
+  // アプリ初期化時にデータベースとサンプルデータを読み込み
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        // まずデータベースを初期化
+        console.log('🚀 アプリケーションの初期化を開始...');
+        
+        const { RecipeService } = await import('./lib/database');
+        await RecipeService.initializeDatabase();
+        
+        console.log('✅ データベースの初期化完了');
+        
+        // レシピデータを強制的に再取得
+        recipesQuery.refetch();
+        
+      } catch (error) {
+        console.error('❌ アプリケーションの初期化に失敗:', error);
+      }
+    };
 
- return (
-   <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50">
-     <div className="container mx-auto px-4 py-8">
-       {/* ヘッダー */}
-       <div className="text-center mb-8">
-         <h1 className="text-4xl font-bold text-primary-800 mb-4">
-           🍳 レシピ管理アプリ
-         </h1>
-         <p className="text-lg text-gray-600 mb-6">
-           美味しいレシピを検索・管理しよう！
-         </p>
-         <Button leftIcon={<Plus />} size="lg">
-           新しいレシピを追加
-         </Button>
-       </div>
+    // アプリ起動時に一度だけ実行
+    initializeApp();
+  }, []); // 依存配列を空にして初回のみ実行
 
-       {/* 統計情報 */}
-       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-         <div className="bg-white rounded-lg p-4 shadow-md text-center">
-           <div className="text-2xl font-bold text-primary-600">
-             {stats.totalRecipes}
-           </div>
-           <div className="text-sm text-gray-600">総レシピ数</div>
-         </div>
-         <div className="bg-white rounded-lg p-4 shadow-md text-center">
-           <div className="text-2xl font-bold text-red-500">
-             {stats.favoriteCount}
-           </div>
-           <div className="text-sm text-gray-600">お気に入り</div>
-         </div>
-         <div className="bg-white rounded-lg p-4 shadow-md text-center">
-           <div className="text-2xl font-bold text-green-500">
-             {stats.categories.length}
-           </div>
-           <div className="text-sm text-gray-600">カテゴリ数</div>
-         </div>
-         <div className="bg-white rounded-lg p-4 shadow-md text-center">
-           <div className="text-2xl font-bold text-blue-500">
-             ⭐ {stats.avgRating}
-           </div>
-           <div className="text-sm text-gray-600">平均評価</div>
-         </div>
-       </div>
+  // データが正常に読み込まれ、レシピが0件の場合のみサンプルデータを初期化
+  useEffect(() => {
+    if (recipesQuery.isSuccess && recipes.length === 0 && !recipesQuery.isFetching) {
+      console.log('📚 レシピが0件のため、サンプルデータを初期化します');
+      initializeSampleData()
+        .then(() => {
+          console.log('✅ サンプルデータの初期化完了');
+          // データを再取得
+          recipesQuery.refetch();
+        })
+        .catch((error) => {
+          console.error('❌ サンプルデータの初期化に失敗:', error);
+        });
+    }
+  }, [recipesQuery.isSuccess, recipes.length, recipesQuery.isFetching, recipesQuery.refetch]);
 
-       {/* 検索・フィルタエリア */}
-       <div className="mb-8 space-y-4">
-         {/* 検索バー */}
-         <RecipeSearchBar
-           searchQuery={searchQuery}
-           onSearchChange={updateSearchQuery}
-           onFilterToggle={() => setShowFilters(!showFilters)}
-           showFilters={showFilters}
-           resultCount={stats.filteredCount}
-           totalCount={stats.totalRecipes}
-           onReset={resetFilters}
-         />
+  // レシピの保存（新規作成・編集）
+  const handleSaveRecipe = async (recipeData: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt' | 'cookCount' | 'lastCooked'>) => {
+    try {
+      if (editingRecipe) {
+        // 編集の場合
+        await updateRecipeMutation.mutateAsync({ 
+          id: editingRecipe.id, 
+          updates: recipeData 
+        });
+        showSuccess('レシピを更新しました');
+      } else {
+        // 新規作成の場合
+        await addRecipeMutation.mutateAsync(recipeData);
+        showSuccess('レシピを作成しました');
+      }
+      
+      // モーダルを閉じる
+      setIsFormModalOpen(false);
+      setEditingRecipe(null);
+    } catch (error) {
+      showError(error);
+    }
+  };
 
-         {/* フィルタパネル */}
-         <RecipeFilterPanel
-           filters={filters}
-           onFilterChange={updateFilter}
-           onReset={resetFilters}
-           availableTags={availableTags}
-           isVisible={showFilters}
-         />
-       </div>
+  // フォームのキャンセル
+  const handleCancelForm = () => {
+    setIsFormModalOpen(false);
+    setEditingRecipe(null);
+  };
 
-       {/* ソートコントロール */}
-       {stats.filteredCount > 0 && (
-         <div className="mb-6">
-           <RecipeSortControls
-             sort={sort}
-             onSortChange={updateSort}
-             resultCount={stats.filteredCount}
-           />
-         </div>
-       )}
+  // 新規レシピ作成
+  const handleCreateRecipe = () => {
+    setEditingRecipe(null);
+    setIsFormModalOpen(true);
+  };
 
-       {/* レシピ一覧 */}
-       <div className="mb-12">
-         {stats.filteredCount > 0 ? (
-           <div className="recipe-grid">
-             {filteredRecipes.map((recipe) => (
-               <RecipeCard
-                 key={recipe.id}
-                 recipe={recipe}
-                 onView={handleViewRecipe}
-                 onEdit={handleEditRecipe}
-                 onDelete={handleDeleteRecipe}
-                 onToggleFavorite={handleToggleFavorite}
-               />
-             ))}
-           </div>
-         ) : (
-           <div className="text-center py-16">
-             <div className="text-6xl mb-4">🔍</div>
-             <h3 className="text-xl font-semibold text-gray-800 mb-2">
-               レシピが見つかりませんでした
-             </h3>
-             <p className="text-gray-600 mb-6">
-               検索条件を変更するか、新しいレシピを追加してみてください。
-             </p>
-             <div className="flex justify-center gap-3">
-               <Button variant="outline" onClick={resetFilters}>
-                 フィルタをリセット
-               </Button>
-               <Button leftIcon={<Plus />}>
-                 新しいレシピを追加
-               </Button>
-             </div>
-           </div>
-         )}
-       </div>
+  // レシピ編集
+  const handleEditRecipe = (recipe: Recipe) => {
+    setEditingRecipe(recipe);
+    setIsFormModalOpen(true);
+  };
 
-       {/* レシピ詳細モーダル */}
-       <Modal
-         isOpen={isDetailModalOpen}
-         onClose={() => setIsDetailModalOpen(false)}
-         title={selectedRecipe?.title}
-         size="xl"
-       >
-         {selectedRecipe && (
-           <div className="space-y-8">
-             {/* レシピ基本情報 */}
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               {/* 画像 */}
-               <div className="aspect-recipe">
-                 <img
-                   src={selectedRecipe.imageUrl}
-                   alt={selectedRecipe.title}
-                   className="w-full h-full object-cover rounded-lg"
-                 />
-               </div>
-               
-               {/* 詳細情報 */}
-               <div className="space-y-4">
-                 <p className="text-gray-600">{selectedRecipe.description}</p>
-                 
-                 <div className="grid grid-cols-2 gap-4 text-sm">
-                   <div className="flex items-center gap-2">
-                     <span className="font-medium">調理時間:</span>
-                     <span>{selectedRecipe.prepTime + selectedRecipe.cookTime}分</span>
-                   </div>
-                   <div className="flex items-center gap-2">
-                     <span className="font-medium">人数:</span>
-                     <span>{selectedRecipe.servings}人分</span>
-                   </div>
-                   <div className="flex items-center gap-2">
-                     <span className="font-medium">難易度:</span>
-                     <span>⭐ × {selectedRecipe.difficulty}</span>
-                   </div>
-                   <div className="flex items-center gap-2">
-                     <span className="font-medium">カテゴリ:</span>
-                     <span>{selectedRecipe.category}</span>
-                   </div>
-                 </div>
+  // お気に入りの切り替え
+  const handleToggleFavorite = async (recipeId: string) => {
+    const recipe = recipes.find(r => r.id === recipeId);
+    if (!recipe) return;
 
-                 {/* タグ */}
-                 <div className="flex flex-wrap gap-2">
-                   {selectedRecipe.tags.map((tag, index) => (
-                     <span 
-                       key={index}
-                       className="px-2 py-1 bg-primary-100 text-primary-800 rounded-full text-xs"
-                     >
-                       #{tag}
-                     </span>
-                   ))}
-                 </div>
+    try {
+      await updateRecipeMutation.mutateAsync({
+        id: recipeId,
+        updates: { isFavorite: !recipe.isFavorite }
+      });
+      showSuccess(recipe.isFavorite ? 'お気に入りから削除しました' : 'お気に入りに追加しました');
+    } catch (error) {
+      showError(error);
+    }
+  };
 
-                 {/* アクションボタン */}
-                 <div className="flex gap-2 pt-4">
-                   <Button
-                     variant={selectedRecipe.isFavorite ? "danger" : "outline"}
-                     leftIcon={<Heart />}
-                     onClick={() => handleToggleFavorite(selectedRecipe.id)}
-                   >
-                     {selectedRecipe.isFavorite ? 'お気に入りから削除' : 'お気に入りに追加'}
-                   </Button>
-                   <Button
-                     variant="secondary"
-                     onClick={() => handleEditRecipe(selectedRecipe)}
-                   >
-                     編集
-                   </Button>
-                 </div>
-               </div>
-             </div>
+  // レシピの詳細表示
+  const handleViewRecipe = (recipe: Recipe) => {
+    setSelectedRecipe(recipe);
+    setCurrentServings(recipe.servings);
+    setIsDetailModalOpen(true);
+  };
 
-             {/* 材料リスト */}
-             <IngredientList
-               ingredients={selectedRecipe.ingredients}
-               servings={currentServings}
-               onServingsChange={setCurrentServings}
-             />
+  // レシピの削除
+  const handleDeleteRecipe = async (recipeId: string) => {
+    const recipe = recipes.find(r => r.id === recipeId);
+    if (!recipe) return;
 
-             {/* 調理手順 */}
-             <CookingSteps steps={selectedRecipe.steps} />
-           </div>
-         )}
-       </Modal>
-     </div>
-   </div>
- );
+    if (confirm(`「${recipe.title}」を削除してもよろしいですか？`)) {
+      try {
+        await deleteRecipeMutation.mutateAsync(recipeId);
+        showSuccess('レシピを削除しました');
+      } catch (error) {
+        showError(error);
+      }
+    }
+  };
+
+  // 調理完了の処理
+  const handleCookingComplete = async (recipeId: string) => {
+    try {
+      await incrementCookCountMutation.mutateAsync(recipeId);
+      showSuccess('調理完了！調理回数を更新しました');
+    } catch (error) {
+      showError(error);
+    }
+  };
+
+  // データエクスポート
+  const handleExportData = async () => {
+    try {
+      await exportDataMutation.mutateAsync();
+      showSuccess('データをエクスポートしました');
+    } catch (error) {
+      showError(error);
+    }
+  };
+
+  // データインポート
+  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        if (Array.isArray(data)) {
+          await importDataMutation.mutateAsync(data);
+          showSuccess('データをインポートしました');
+        } else {
+          showError(new Error('無効なデータ形式です'));
+        }
+      } catch {
+        showError(new Error('ファイルの読み込みに失敗しました'));
+      }
+    };
+    reader.readAsText(file);
+    
+    // ファイル入力をリセット
+    event.target.value = '';
+  };
+
+  // データベースクリア（開発用）
+  const handleClearDatabase = async () => {
+    if (confirm('全てのデータを削除してもよろしいですか？この操作は取り消せません。')) {
+      try {
+        await clearDatabaseMutation.mutateAsync();
+        showSuccess('データベースをクリアしました');
+      } catch (error) {
+        showError(error);
+      }
+    }
+  };
+
+  // ローディング状態
+  if (recipesQuery.isLoading) {
+    return <LoadingSpinner message="レシピデータを読み込み中..." />;
+  }
+
+  // エラー状態
+  if (recipesQuery.isError) {
+    return <ErrorDisplay error={recipesQuery.error} onRetry={() => recipesQuery.refetch()} />;
+  }
+
+  // 現在進行中の操作があるかどうか
+  const isAnyMutationPending = 
+    addRecipeMutation.isPending ||
+    updateRecipeMutation.isPending ||
+    deleteRecipeMutation.isPending ||
+    incrementCookCountMutation.isPending ||
+    exportDataMutation.isPending ||
+    importDataMutation.isPending ||
+    clearDatabaseMutation.isPending;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50">
+      <div className="container mx-auto px-4 py-8">
+        {/* ヘッダー */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-primary-800 mb-4">
+            🍳 レシピ管理アプリ
+          </h1>
+          <p className="text-lg text-gray-600 mb-6">
+            美味しいレシピを作成・管理しよう！データベース統合版
+          </p>
+          
+          {/* アクションボタン */}
+          <div className="flex flex-wrap justify-center gap-3 mb-4">
+            <Button 
+              leftIcon={<Plus />} 
+              size="lg"
+              onClick={handleCreateRecipe}
+              disabled={isAnyMutationPending}
+            >
+              新しいレシピを作成
+            </Button>
+            
+            <Button
+              variant="outline"
+              leftIcon={<Download />}
+              onClick={handleExportData}
+              disabled={isAnyMutationPending}
+            >
+              データエクスポート
+            </Button>
+            
+            <label className="inline-block cursor-pointer">
+              <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                <Upload className="w-4 h-4 mr-2" />
+                {importDataMutation.isPending ? '読み込み中...' : 'データインポート'}
+              </span>
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleImportData}
+                disabled={isAnyMutationPending}
+                className="hidden"
+              />
+            </label>
+            
+            {/* 開発モードでのみ表示 */}
+            {typeof process !== 'undefined' && process.env?.NODE_ENV === 'development' && (
+              <Button
+                variant="danger"
+                leftIcon={<Trash2 />}
+                onClick={handleClearDatabase}
+                disabled={isAnyMutationPending}
+                size="sm"
+              >
+                DB クリア
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* 統計情報 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-lg p-4 shadow-md text-center">
+            <div className="text-2xl font-bold text-primary-600">
+              {stats?.totalRecipes || 0}
+            </div>
+            <div className="text-sm text-gray-600">総レシピ数</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-md text-center">
+            <div className="text-2xl font-bold text-red-500">
+              {stats?.favoriteRecipes || 0}
+            </div>
+            <div className="text-sm text-gray-600">お気に入り</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-md text-center">
+            <div className="text-2xl font-bold text-green-500">
+              {Object.keys(stats?.categoryBreakdown || {}).length}
+            </div>
+            <div className="text-sm text-gray-600">カテゴリ数</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-md text-center">
+            <div className="text-2xl font-bold text-blue-500">
+              ⭐ {stats?.avgRating || 0}
+            </div>
+            <div className="text-sm text-gray-600">平均評価</div>
+          </div>
+        </div>
+
+        {/* 進行中の操作インジケーター */}
+        {isAnyMutationPending && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+              <span className="text-blue-700 text-sm">
+                {addRecipeMutation.isPending && 'レシピを作成中...'}
+                {updateRecipeMutation.isPending && 'レシピを更新中...'}
+                {deleteRecipeMutation.isPending && 'レシピを削除中...'}
+                {incrementCookCountMutation.isPending && '調理回数を更新中...'}
+                {exportDataMutation.isPending && 'データをエクスポート中...'}
+                {importDataMutation.isPending && 'データをインポート中...'}
+                {clearDatabaseMutation.isPending && 'データベースをクリア中...'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* 検索・フィルタエリア */}
+        <div className="mb-8 space-y-4">
+          <RecipeSearchBar
+            searchQuery={searchQuery}
+            onSearchChange={updateSearchQuery}
+            onFilterToggle={() => setShowFilters(!showFilters)}
+            showFilters={showFilters}
+            resultCount={filterStats.filteredCount}
+            totalCount={filterStats.totalRecipes}
+            onReset={resetFilters}
+          />
+
+          <RecipeFilterPanel
+            filters={filters}
+            onFilterChange={updateFilter}
+            onReset={resetFilters}
+            availableTags={availableTags}
+            isVisible={showFilters}
+          />
+        </div>
+
+        {/* ソートコントロール */}
+        {filterStats.filteredCount > 0 && (
+          <div className="mb-6">
+            <RecipeSortControls
+              sort={sort}
+              onSortChange={updateSort}
+              resultCount={filterStats.filteredCount}
+            />
+          </div>
+        )}
+
+        {/* レシピ一覧 */}
+        <div className="mb-12">
+          {filterStats.filteredCount > 0 ? (
+            <div className="recipe-grid">
+              {filteredRecipes.map((recipe) => (
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  onView={handleViewRecipe}
+                  onEdit={handleEditRecipe}
+                  onDelete={handleDeleteRecipe}
+                  onToggleFavorite={handleToggleFavorite}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <div className="text-6xl mb-4">
+                {searchQuery || Object.values(filters).some(v => v && (Array.isArray(v) ? v.length > 0 : true)) 
+                  ? '🔍' 
+                  : '📚'
+                }
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                {recipes.length === 0 
+                  ? 'まだレシピがありません' 
+                  : 'レシピが見つかりませんでした'
+                }
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {recipes.length === 0 
+                  ? '最初のレシピを作成して、美味しい料理のコレクションを始めましょう！'
+                  : '検索条件を変更するか、新しいレシピを追加してみてください。'
+                }
+              </p>
+              <div className="flex justify-center gap-3">
+                {recipes.length > 0 && (
+                  <Button variant="outline" onClick={resetFilters}>
+                    フィルタをリセット
+                  </Button>
+                )}
+                <Button leftIcon={<Plus />} onClick={handleCreateRecipe}>
+                  新しいレシピを作成
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* レシピフォームモーダル */}
+        <Modal
+          isOpen={isFormModalOpen}
+          onClose={handleCancelForm}
+          title={editingRecipe ? 'レシピを編集' : '新しいレシピを作成'}
+          size="xl"
+        >
+          <RecipeForm
+            recipe={editingRecipe || undefined}
+            onSave={handleSaveRecipe}
+            onCancel={handleCancelForm}
+            isLoading={addRecipeMutation.isPending || updateRecipeMutation.isPending}
+          />
+        </Modal>
+
+        {/* レシピ詳細モーダル */}
+        <Modal
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+          title={selectedRecipe?.title}
+          size="xl"
+        >
+          {selectedRecipe && (
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="aspect-recipe">
+                  <img
+                    src={selectedRecipe.imageUrl}
+                    alt={selectedRecipe.title}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                </div>
+                
+                <div className="space-y-4">
+                  <p className="text-gray-600">{selectedRecipe.description}</p>
+                  
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">調理時間:</span>
+                      <span>{selectedRecipe.prepTime + selectedRecipe.cookTime}分</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">人数:</span>
+                      <span>{selectedRecipe.servings}人分</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">難易度:</span>
+                      <span>⭐ × {selectedRecipe.difficulty}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">調理回数:</span>
+                      <span>{selectedRecipe.cookCount}回</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {selectedRecipe.tags.map((tag, index) => (
+                      <span 
+                        key={index}
+                        className="px-2 py-1 bg-primary-100 text-primary-800 rounded-full text-xs"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      variant={selectedRecipe.isFavorite ? "danger" : "outline"}
+                      leftIcon={<Heart />}
+                      onClick={() => handleToggleFavorite(selectedRecipe.id)}
+                      disabled={updateRecipeMutation.isPending}
+                    >
+                      {selectedRecipe.isFavorite ? 'お気に入りから削除' : 'お気に入りに追加'}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      leftIcon={<Edit3 />}
+                      onClick={() => {
+                        setIsDetailModalOpen(false);
+                        handleEditRecipe(selectedRecipe);
+                      }}
+                      disabled={isAnyMutationPending}
+                    >
+                      編集
+                    </Button>
+                    <Button
+                      variant="primary"
+                      onClick={() => handleCookingComplete(selectedRecipe.id)}
+                      disabled={incrementCookCountMutation.isPending}
+                    >
+                      調理完了
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <IngredientList
+                ingredients={selectedRecipe.ingredients}
+                servings={currentServings}
+                onServingsChange={setCurrentServings}
+              />
+
+              <CookingSteps steps={selectedRecipe.steps} />
+            </div>
+          )}
+        </Modal>
+
+        {/* フッター情報 */}
+        <div className="mt-16 text-center text-sm text-gray-500 border-t border-gray-200 pt-8">
+          <p>
+            React Query + IndexedDB を使用したレシピ管理アプリ
+          </p>
+          {typeof process !== 'undefined' && process.env?.NODE_ENV === 'development' && (
+            <div className="mt-4 space-y-2">
+              <p className="mt-2">
+                🔧 開発モード: console で <code>window.recipeDebug</code> を確認してください
+              </p>
+              <div className="flex justify-center gap-4 text-xs">
+                <button 
+                  onClick={async () => {
+                    try {
+                      const { RecipeService } = await import('./lib/database');
+                      const status = await RecipeService.getDatabaseStatus();
+                      console.log('📊 データベース状態:', status);
+                      alert(JSON.stringify(status, null, 2));
+                    } catch (error) {
+                      console.error('データベース状態の取得に失敗:', error);
+                      alert('データベース状態の取得に失敗しました');
+                    }
+                  }}
+                  className="px-2 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
+                >
+                  DB状態確認
+                </button>
+                <button 
+                  onClick={async () => {
+                    try {
+                      const { RecipeService } = await import('./lib/database');
+                      const validation = await RecipeService.validateDatabase();
+                      console.log('🔍 整合性チェック結果:', validation);
+                      alert(`整合性: ${validation.isValid ? 'OK' : 'NG'}\nエラー数: ${validation.errors.length}`);
+                    } catch (error) {
+                      console.error('整合性チェックに失敗:', error);
+                      alert('整合性チェックに失敗しました');
+                    }
+                  }}
+                  className="px-2 py-1 bg-green-100 text-green-800 rounded hover:bg-green-200"
+                >
+                  整合性チェック
+                </button>
+                <button 
+                  onClick={async () => {
+                    if (confirm('データベースを完全に再作成しますか？（データは保持されます）')) {
+                      try {
+                        const { RecipeService } = await import('./lib/database');
+                        await RecipeService.recreateDatabase();
+                        alert('データベースの再作成が完了しました');
+                        window.location.reload();
+                      } catch (error) {
+                        console.error('データベース再作成に失敗:', error);
+                        alert('データベース再作成に失敗しました');
+                      }
+                    }
+                  }}
+                  className="px-2 py-1 bg-orange-100 text-orange-800 rounded hover:bg-orange-200"
+                >
+                  DB再作成
+                </button>
+                <button 
+                  onClick={async () => {
+                    if (confirm('データベースを完全に削除して最初からやり直しますか？')) {
+                      try {
+                        const deleteRequest = indexedDB.deleteDatabase('RecipeManagerDB');
+                        deleteRequest.onsuccess = () => {
+                          alert('データベースを削除しました。ページをリロードします。');
+                          window.location.reload();
+                        };
+                        deleteRequest.onerror = () => {
+                          alert('データベース削除に失敗しました');
+                        };
+                      } catch {
+                        alert('データベース削除に失敗しました');
+                      }
+                    }
+                  }}
+                  className="px-2 py-1 bg-red-100 text-red-800 rounded hover:bg-red-200"
+                >
+                  完全リセット
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default App;
